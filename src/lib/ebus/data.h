@@ -154,14 +154,15 @@ public:
 	 * @param templates the @a DataFieldTemplates to be referenced by name, or NULL.
 	 * @param returnField the variable in which to store the created instance.
 	 * @param isWriteMessage whether the field is part of a write message (default false).
-	 * @param dstAddress the destination bus address (default @a SYN for creating a template @a DataField).
+	 * @param isTemplate true for creating a template @a DataField.
+	 * @param isBroadcastOrMasterDestination true if the destination bus address is @a BRODCAST or a master address.
 	 * @return @a RESULT_OK on success, or an error code.
 	 * Note: the caller needs to free the created instance.
 	 */
 	static result_t create(vector<string>::iterator& it, const vector<string>::iterator end,
 			DataFieldTemplates* templates, DataField*& returnField,
-			const bool isWriteMessage=false,
-			const bool isTemplate=true, const bool isBroadcastOrMasterDestination=false);
+			const bool isWriteMessage,
+			const bool isTemplate, const bool isBroadcastOrMasterDestination);
 
 	/**
 	 * Dump the @a string optionally embedded in @a TEXT_SEPARATOR to the output.
@@ -305,7 +306,7 @@ public:
 	PartType getPartType() const { return m_partType; }
 
 	// @copydoc
-	virtual unsigned char getLength(PartType partType) { return partType == m_partType ? m_length : 0; };
+	virtual unsigned char getLength(PartType partType) { return partType == m_partType ? m_length : (unsigned char)0; };
 	// re-use same position as previous field as not all bits of fully consumed yet
 
 	/**
@@ -557,7 +558,7 @@ public:
 			const unsigned char length, const unsigned char bitCount,
 			const map<unsigned int, string> values)
 		: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-				(dataType.bitCount < 8) ? (unsigned char)dataType.divisorOrFirstBit : 0),
+				(unsigned char)((dataType.bitCount < 8) ? dataType.divisorOrFirstBit : 0)),
 		m_values(values) {}
 
 	/**

@@ -73,7 +73,7 @@ bool PollRequest::notify(result_t result, SymbolString& slave)
 	if (result == RESULT_OK) {
 		result = m_message->decode(pt_slaveData, slave, output); // decode data
 	}
-	if (result != RESULT_OK)
+	if (result < RESULT_OK)
 		logError(lf_bus, "poll %s %s failed: %s", m_message->getClass().c_str(), m_message->getName().c_str(), getResultCode(result));
 	else
 		logNotice(lf_bus, "poll %s %s: %s", m_message->getClass().c_str(), m_message->getName().c_str(), output.str().c_str());
@@ -102,7 +102,7 @@ bool ScanRequest::notify(result_t result, SymbolString& slave)
 			scanResult << hex << setw(2) << setfill('0') << static_cast<unsigned>(dstAddress) << UI_FIELD_SEPARATOR;
 		result = m_message->decode(pt_slaveData, slave, scanResult, append); // decode data
 	}
-	if (result != RESULT_OK) {
+	if (result < RESULT_OK) {
 		logError(lf_bus, "scan %2.2x failed: %s", dstAddress, getResultCode(result));
 		return false;
 	}
@@ -148,7 +148,7 @@ result_t BusHandler::sendAndWait(SymbolString& master, SymbolString& slave)
 	result_t result = RESULT_ERR_NO_SIGNAL;
 	ActiveBusRequest request(master, slave);
 
-	for (int sendRetries=m_failedSendRetries+1; sendRetries>=0; sendRetries--) {
+	for (int sendRetries = m_failedSendRetries + 1; sendRetries >= 0; sendRetries--) {
 		m_nextRequests.add(&request);
 		bool success = m_finishedRequests.waitRemove(&request);
 		result = success ? request.m_result : RESULT_ERR_TIMEOUT;
@@ -610,7 +610,7 @@ result_t BusHandler::setState(BusState state, result_t result, bool firstRepetit
 				if (master != SYN && !m_seenAddresses[master]) {
 					m_seenAddresses[master] = true;
 					m_masterCount++;
-					if (m_autoLockCount)
+					if (m_autoLockCount && m_masterCount>m_lockCount)
 						m_lockCount = m_masterCount;
 					logNotice(lf_bus, "new master %2.2x", master);
 				}
@@ -676,7 +676,7 @@ void BusHandler::receiveCompleted()
 	unsigned char srcAddress = m_command[0], dstAddress = m_command[1];
 	if (isMaster(srcAddress) && !m_seenAddresses[srcAddress]) {
 		m_masterCount++;
-		if (m_autoLockCount)
+		if (m_autoLockCount && m_masterCount>m_lockCount)
 			m_lockCount = m_masterCount;
 		logNotice(lf_bus, "new master %2.2x", srcAddress);
 	}
@@ -688,7 +688,7 @@ void BusHandler::receiveCompleted()
 		logInfo(lf_update, "update MM cmd: %s", m_command.getDataStr().c_str());
 		if (!m_seenAddresses[dstAddress]) {
 			m_masterCount++;
-			if (m_autoLockCount)
+			if (m_autoLockCount && m_masterCount>m_lockCount)
 				m_lockCount = m_masterCount;
 			logNotice(lf_bus, "new master %2.2x", dstAddress);
 		}
@@ -700,7 +700,7 @@ void BusHandler::receiveCompleted()
 		if (masterAddr != SYN && !m_seenAddresses[masterAddr]) {
 			m_seenAddresses[masterAddr] = true;
 			m_masterCount++;
-			if (m_autoLockCount)
+			if (m_autoLockCount && m_masterCount>m_lockCount)
 				m_lockCount = m_masterCount;
 			logNotice(lf_bus, "new master %2.2x", masterAddr);
 		}
@@ -721,7 +721,7 @@ void BusHandler::receiveCompleted()
 		string name = message->getName();
 		ostringstream output;
 		result_t result = message->decode(m_command, m_response, output);
-		if (result != RESULT_OK)
+		if (result < RESULT_OK)
 			logError(lf_update, "unable to parse %s %s from %s / %s: %s", clazz.c_str(), name.c_str(), m_command.getDataStr().c_str(), m_response.getDataStr().c_str(), getResultCode(result));
 		else {
 			string data = output.str();
@@ -764,7 +764,7 @@ result_t BusHandler::startScan(bool full)
 
 	m_scanResults.clear();
 
-	for (unsigned char slave=1; slave != 0; slave++) { // 0 is known to be a master
+	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
 		if (!isValidAddress(slave, false) || isMaster(slave))
 			continue;
 		if (!full && !m_seenAddresses[slave]) {
@@ -787,7 +787,7 @@ result_t BusHandler::startScan(bool full)
 void BusHandler::formatScanResult(ostringstream& output)
 {
 	bool first = true;
-	for (unsigned char slave=1; slave != 0; slave++) { // 0 is known to be a master
+	for (unsigned char slave = 1; slave != 0; slave++) { // 0 is known to be a master
 		map<unsigned char, string>::iterator it = m_scanResults.find(slave);
 		if (it != m_scanResults.end()) {
 			if (first)

@@ -408,7 +408,7 @@ result_t DataField::create(vector<string>::iterator& it,
 			delete fields.back();
 			fields.pop_back();
 		}
-		return result == RESULT_OK ? RESULT_ERR_INVALID_ARG : result;
+		return result;
 	}
 
 	if (fields.size() == 1)
@@ -705,7 +705,7 @@ result_t StringDataField::writeSymbols(istringstream& input,
 					if ((m_dataType.flags & BCD) != 0)
 						output[baseOffset + offset - incr] = (unsigned char)((6+daysSinceSunday) % 7); // Sun=0x06
 					else
-						output[baseOffset + offset - incr] = (daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
+						output[baseOffset + offset - incr] = (unsigned char)(daysSinceSunday==0 ? 7 : daysSinceSunday); // Sun=0x07
 				}
 				if (value >= 2000)
 					value -= 2000;
@@ -891,7 +891,7 @@ NumberDataField::NumberDataField(const string name, const string comment,
 		const unsigned char length, const unsigned char bitCount,
 		const int divisor)
 	: NumericDataField(name, comment, unit, dataType, partType, length, bitCount,
-			(dataType.bitCount % 8) == 0 ? 0 : (unsigned char)dataType.divisorOrFirstBit),
+			(unsigned char)((dataType.bitCount % 8) == 0 ? 0 : dataType.divisorOrFirstBit)),
 	m_divisor(divisor), m_precision(0)
 {
 	if (divisor > 1)
@@ -1339,7 +1339,7 @@ result_t DataFieldSet::write(istringstream& input,
 
 void DataFieldTemplates::clear()
 {
-	for (map<string, DataField*>::iterator it=m_fieldsByName.begin(); it!=m_fieldsByName.end(); it++) {
+	for (map<string, DataField*>::iterator it = m_fieldsByName.begin(); it != m_fieldsByName.end(); it++) {
 		delete it->second;
 		it->second = NULL;
 	}
@@ -1368,7 +1368,7 @@ result_t DataFieldTemplates::add(DataField* field, bool replace)
 result_t DataFieldTemplates::addFromFile(vector<string>::iterator& begin, const vector<string>::iterator end, void* arg, vector< vector<string> >* defaults, const string& filename, unsigned int lineNo)
 {
 	DataField* field = NULL;
-	result_t result = DataField::create(begin, end, this, field);
+	result_t result = DataField::create(begin, end, this, field, false, true, false);
 	if (result != RESULT_OK)
 		return result;
 

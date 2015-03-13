@@ -1,5 +1,5 @@
 ebusd - eBUS daemon
--------------------
+===================
 
 ebusd is a daemon for handling communication with eBUS devices connected to a
 2-wire bus system ("energy bus" used by numerous heating systems).
@@ -25,7 +25,8 @@ Installation
 ------------
 
 Building ebusd from the source requires the following packages:
- * autoconf (>=2.65)
+ * autoconf (>=2.63)
+ * automake (>=1.11)
  * g++
  * make
 
