@@ -335,13 +335,16 @@ result_t BusHandler::handleSymbol()
 	}
 
 	m_lastReceive = now;
-	if (recvSymbol == SYN) {
+	if ((recvSymbol == SYN) && (m_state != bs_sendSyn)) {
 		if (!sending && m_remainLockCount > 0 && m_command.size() != 1)
 			m_remainLockCount--;
 		else if (!sending && m_remainLockCount == 0 && m_command.size() == 1)
 			m_remainLockCount = 1; // wait for next AUTO-SYN after SYN / address / SYN (bus locked for own priority)
 
-		return setState(bs_ready, RESULT_ERR_SYN);
+		if (m_state == bs_skip)
+			return setState(bs_ready, RESULT_OK);
+		else
+			return setState(bs_ready, RESULT_ERR_SYN);
 	}
 
 	unsigned int headerLen, crcPos;
@@ -580,7 +583,7 @@ result_t BusHandler::handleSymbol()
 		if (sending) {
 			if (recvSymbol == sendSymbol) {
 				// successfully sent
-				return setState(bs_skip, RESULT_OK);
+				return setState(bs_ready, RESULT_OK);
 			}
 		}
 		return setState(bs_skip, RESULT_ERR_INVALID_ARG);
